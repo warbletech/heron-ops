@@ -1,0 +1,6 @@
+steadyhelm
+steadyhelm.exe
+dist/
+*.test
+*.out
+.env
