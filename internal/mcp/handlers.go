@@ -9,6 +9,19 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+// CallTool is the public entrypoint for embedding SteadyHelm in other MCP facades.
+func (s *Server) CallTool(ctx context.Context, name string, args map[string]any) ToolCallResult {
+	if args == nil {
+		args = map[string]any{}
+	}
+	return s.dispatch(ctx, ToolCallParams{Name: name, Arguments: args})
+}
+
+// ToolNames returns tool definitions for the current mode (readonly | readwrite).
+func (s *Server) ToolNames() []ToolDefinition {
+	return toolDefs(string(s.cfg.Mode))
+}
+
 // dispatch routes a tools/call request to the correct handler.
 func (s *Server) dispatch(ctx context.Context, params ToolCallParams) ToolCallResult {
 	// Guard write tools in readonly mode.
