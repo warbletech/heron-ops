@@ -24,11 +24,11 @@ func main() {
 	flag.Parse()
 
 	if *ver {
-		fmt.Printf("steadyhelm %s\n", version)
+		fmt.Printf("heron-ops %s (binary alias: steadyhelm)\n", version)
 		os.Exit(0)
 	}
 
-	log.Printf("[steadyhelm] version=%s mode=%s transport=%s", version, *mode, *transport)
+	log.Printf("[heron-ops] (legacy binary name: steadyhelm) version=%s mode=%s transport=%s", version, *mode, *transport)
 
 	cfg := config.New(*kubeconfig, *namespace, *mode)
 

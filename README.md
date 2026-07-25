@@ -1,8 +1,10 @@
-# SteadyHelm
+# Heron Ops
+
+> **Product rename:** **Heron Ops** (heron bird). Repository and binary still use the legacy name **SteadyHelm** / `steadyhelm` during transition — see [HERON_OPS_RENAME.md](https://github.com/warble-tech/warble-army/blob/main/docs/HERON_OPS_RENAME.md). Logo: [heron-ops mark](https://github.com/warble-tech/warble-army/blob/main/brand/heron-ops/heron-ops-logo.jpg).
 
 **A Kubernetes MCP (Model Context Protocol) server** that bridges AI agents to live cluster state. Lets Gemini, Claude, or GPT-4 reason over your namespaces, pods, events, and HPA metrics — in real time — without `kubectl` proxy hacks.
 
-Part of the [Warble Cloud](https://warblecloud.com) open-source ecosystem. Powers the **ShrikeOps** AI agent bridge inside the Reflexion Engine.
+Part of the [Warble Army](https://github.com/warble-tech/warble-army) flock and upcoming **[warbleoss.org](https://warbleoss.org)** Community Edition. Pairs with **ShrikeOps** (scan) and **Starling Lite** (MCP facade).
 
 ---
 

@@ -1,5 +1,6 @@
-// Package mcpserver exposes SteadyHelm's Kubernetes MCP server for embedding
-// (e.g. Warble Army Starling Lite). Prefer this package over importing internal/.
+// Package mcpserver exposes Heron Ops (legacy: SteadyHelm) Kubernetes MCP
+// server for embedding (e.g. Warble Army Starling Lite). Prefer this package
+// over importing internal/.
 package mcpserver
 
 import (
