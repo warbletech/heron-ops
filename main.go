@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/warblecloud/steadyhelm/internal/config"
-	"github.com/warblecloud/steadyhelm/internal/mcp"
+	"github.com/warble-tech/heron-ops/internal/config"
+	"github.com/warble-tech/heron-ops/internal/mcp"
 )
 
 const version = "0.1.0"
@@ -34,21 +34,21 @@ func main() {
 
 	srv, err := mcp.NewServer(cfg)
 	if err != nil {
-		log.Fatalf("[steadyhelm] failed to initialise server: %v", err)
+		log.Fatalf("[heron-ops] failed to initialise server: %v", err)
 	}
 
 	switch *transport {
 	case "stdio":
-		log.Println("[steadyhelm] listening on stdio")
+		log.Println("[heron-ops] listening on stdio")
 		if err := srv.ServeStdio(); err != nil {
-			log.Fatalf("[steadyhelm] stdio error: %v", err)
+			log.Fatalf("[heron-ops] stdio error: %v", err)
 		}
 	case "http":
-		log.Printf("[steadyhelm] listening on %s", *addr)
+		log.Printf("[heron-ops] listening on %s", *addr)
 		if err := srv.ServeHTTP(*addr); err != nil {
-			log.Fatalf("[steadyhelm] http error: %v", err)
+			log.Fatalf("[heron-ops] http error: %v", err)
 		}
 	default:
-		log.Fatalf("[steadyhelm] unknown transport %q, use stdio or http", *transport)
+		log.Fatalf("[heron-ops] unknown transport %q, use stdio or http", *transport)
 	}
 }

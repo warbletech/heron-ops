@@ -1,4 +1,4 @@
-module github.com/warblecloud/steadyhelm
+module github.com/warble-tech/heron-ops
 
 go 1.22
 

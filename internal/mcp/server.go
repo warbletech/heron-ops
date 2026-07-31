@@ -10,8 +10,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/warblecloud/steadyhelm/internal/config"
-	"github.com/warblecloud/steadyhelm/internal/k8s"
+	"github.com/warble-tech/heron-ops/internal/config"
+	"github.com/warble-tech/heron-ops/internal/k8s"
 )
 
 // Server is the MCP server instance.
@@ -75,7 +75,7 @@ func (s *Server) ServeHTTP(addr string) error {
 		json.NewEncoder(w).Encode(resp)
 	})
 	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
-		fmt.Fprint(w, `{"status":"ok","server":"steadyhelm"}`)
+		fmt.Fprint(w, `{"status":"ok","server":"heron-ops"}`)
 	})
 	return http.ListenAndServe(addr, mux)
 }
@@ -100,7 +100,7 @@ func (s *Server) handle(ctx context.Context, raw []byte) Response {
 			ID:      req.ID,
 			Result: InitializeResult{
 				ProtocolVersion: "2024-11-05",
-				ServerInfo:      ServerInfo{Name: "steadyhelm", Version: "0.1.0"},
+				ServerInfo:      ServerInfo{Name: "heron-ops", Version: "0.1.0"},
 				Capabilities: map[string]any{
 					"tools": map[string]any{},
 				},

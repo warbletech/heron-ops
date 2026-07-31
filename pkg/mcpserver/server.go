@@ -6,8 +6,8 @@ package mcpserver
 import (
 	"context"
 
-	"github.com/warblecloud/steadyhelm/internal/config"
-	"github.com/warblecloud/steadyhelm/internal/mcp"
+	"github.com/warble-tech/heron-ops/internal/config"
+	"github.com/warble-tech/heron-ops/internal/mcp"
 )
 
 // Mode mirrors config.Mode for external callers.
