@@ -1,4 +1,4 @@
-module github.com/warble-tech/heron-ops
+module github.com/warbletech/heron-ops
 
 go 1.22
 

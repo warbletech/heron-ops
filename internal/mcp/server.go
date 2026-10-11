@@ -10,8 +10,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/warble-tech/heron-ops/internal/config"
-	"github.com/warble-tech/heron-ops/internal/k8s"
+	"github.com/warbletech/heron-ops/internal/config"
+	"github.com/warbletech/heron-ops/internal/k8s"
 )
 
 // Server is the MCP server instance.

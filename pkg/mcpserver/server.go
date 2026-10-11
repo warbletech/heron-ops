@@ -6,8 +6,8 @@ package mcpserver
 import (
 	"context"
 
-	"github.com/warble-tech/heron-ops/internal/config"
-	"github.com/warble-tech/heron-ops/internal/mcp"
+	"github.com/warbletech/heron-ops/internal/config"
+	"github.com/warbletech/heron-ops/internal/mcp"
 )
 
 // Mode mirrors config.Mode for external callers.
