@@ -21,7 +21,7 @@ Pairs with **[ShrikeOps](https://github.com/warbletech/shrikeops)** (scan) and *
 ## Install
 
 ```bash
-go install github.com/warble-tech/heron-ops@latest   # after module path migrate
+go install github.com/warbletech/heron-ops@latest
 # or from army:
 git clone --recurse-submodules https://github.com/warbletech/warble-army.git
 cd warble-army && make heron-ops

@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/warble-tech/heron-ops/internal/config"
-	"github.com/warble-tech/heron-ops/internal/mcp"
+	"github.com/warbletech/heron-ops/internal/config"
+	"github.com/warbletech/heron-ops/internal/mcp"
 )
 
 const version = "0.1.0"
