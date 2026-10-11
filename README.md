@@ -1,14 +1,14 @@
 # Heron Ops
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/warble-tech/warble-army/main/brand/heron-ops/heron-ops-logo.jpg" alt="Heron Ops" width="120" />
+  <img src="https://raw.githubusercontent.com/warbletech/warble-army/main/brand/heron-ops/heron-ops-logo.jpg" alt="Heron Ops" width="120" />
 </p>
 
 **Kubernetes MCP server** for AI agents — live namespaces, pods, logs, events, HPA metrics, gated writes.
 
-> Formerly **SteadyHelm**. Repository: `warble-tech/heron-ops`. Part of the [Warble Army](https://github.com/warble-tech/warble-army) flock and **[warbleoss.org](https://warbleoss.org)**.
+> Formerly **SteadyHelm**. Repository: `warbletech/heron-ops`. Part of the [Warble Army](https://github.com/warbletech/warble-army) flock and **[warbleoss.org](https://warbleoss.org)**.
 
-Pairs with **[ShrikeOps](https://github.com/warble-tech/shrikeops)** (scan) and **Starling Lite** / Starling EX Community Edition.
+Pairs with **[ShrikeOps](https://github.com/warbletech/shrikeops)** (scan) and **Starling Lite** / Starling EX Community Edition.
 
 ## Features
 
@@ -23,7 +23,7 @@ Pairs with **[ShrikeOps](https://github.com/warble-tech/shrikeops)** (scan) and 
 ```bash
 go install github.com/warble-tech/heron-ops@latest   # after module path migrate
 # or from army:
-git clone --recurse-submodules https://github.com/warble-tech/warble-army.git
+git clone --recurse-submodules https://github.com/warbletech/warble-army.git
 cd warble-army && make heron-ops
 ./bin/heron-ops --mode=readonly --transport=stdio
 ```
@@ -46,7 +46,7 @@ Legacy binary name `steadyhelm` remains a symlink during transition.
 ## Try the flock
 
 Public Starling Lite (includes Heron Ops tools):  
-https://starling-ex.frakma.io/lite/mcp
+https://mcp.warbleoss.org
 
 ## License
 
