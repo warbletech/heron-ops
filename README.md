@@ -4,6 +4,8 @@
   <img src="https://raw.githubusercontent.com/warbletech/warble-army/main/brand/heron-ops/heron-ops-logo.jpg" alt="Heron Ops" width="120" />
 </p>
 
+[![ci](https://github.com/warbletech/heron-ops/actions/workflows/ci.yml/badge.svg)](https://github.com/warbletech/heron-ops/actions/workflows/ci.yml)
+
 **Kubernetes MCP server** for AI agents — live namespaces, pods, logs, events, HPA metrics, gated writes.
 
 > Formerly **SteadyHelm**. Repository: `warbletech/heron-ops`. Part of the [Warble Army](https://github.com/warbletech/warble-army) flock and **[warbleoss.org](https://warbleoss.org)**.
@@ -47,6 +49,17 @@ Legacy binary name `steadyhelm` remains a symlink during transition.
 
 Public Starling Lite (includes Heron Ops tools):  
 https://mcp.warbleoss.org
+
+## Development
+
+```bash
+go test -race ./...   # unit tests use client-go's fake clientset; no cluster needed
+go vet ./...
+```
+
+CI (`.github/workflows/ci.yml`) runs gofmt, `go mod tidy`, build, vet and tests on every push and PR.
+Pushing a `v*` tag runs `.github/workflows/release.yml`, which tests, builds binaries for Linux, macOS and
+Windows (amd64/arm64), and publishes a GitHub release with `checksums.txt`.
 
 ## License
 

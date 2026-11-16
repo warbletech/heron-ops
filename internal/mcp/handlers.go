@@ -108,14 +108,17 @@ func (s *Server) dispatch(ctx context.Context, params ToolCallParams) ToolCallRe
 		}
 		lines := []string{header("NAMESPACE", "NAME", "REFERENCE", "MINPODS", "MAXPODS", "CURRENT", "DESIRED")}
 		for _, h := range hpas {
-			cur := int32(0)
-			if h.Status.CurrentReplicas != 0 {
-				cur = h.Status.CurrentReplicas
+			cur := h.Status.CurrentReplicas
+			// spec.minReplicas is optional (the API server defaults it to 1);
+			// never dereference a nil pointer from a hand-written or older object.
+			minReplicas := int32(1)
+			if h.Spec.MinReplicas != nil {
+				minReplicas = *h.Spec.MinReplicas
 			}
 			lines = append(lines, fmt.Sprintf("%-20s %-30s %-30s %-8d %-8d %-8d %-8d",
 				h.Namespace, h.Name,
 				fmt.Sprintf("%s/%s", h.Spec.ScaleTargetRef.Kind, h.Spec.ScaleTargetRef.Name),
-				*h.Spec.MinReplicas, h.Spec.MaxReplicas,
+				minReplicas, h.Spec.MaxReplicas,
 				cur, h.Status.DesiredReplicas,
 			))
 		}
@@ -315,6 +318,12 @@ func renderPodDetail(p *corev1.Pod) string {
 		}
 		sb.WriteString(fmt.Sprintf("  %-30s ready=%-5v restarts=%-4d state=%s\n",
 			cs.Name, cs.Ready, cs.RestartCount, state))
+		// The last termination explains crash loops (e.g. OOMKilled, exit 137)
+		// while the current state only says Waiting(CrashLoopBackOff).
+		if t := cs.LastTerminationState.Terminated; t != nil {
+			sb.WriteString(fmt.Sprintf("  %-30s lastState=Terminated(%s) exitCode=%d\n",
+				"", t.Reason, t.ExitCode))
+		}
 	}
 	return sb.String()
 }
