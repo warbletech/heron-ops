@@ -81,7 +81,9 @@ func (s *Server) ServeHTTP(addr string) error {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			log.Printf("[heron-ops] write HTTP response: %v", err)
+		}
 	})
 	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 		fmt.Fprint(w, `{"status":"ok","server":"heron-ops"}`)

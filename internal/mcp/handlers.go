@@ -227,7 +227,7 @@ func (s *Server) clusterSummary(ctx context.Context, ns string) ToolCallResult {
 				}
 			}
 		}
-		sb.WriteString(fmt.Sprintf("NODES: %d total, %d Ready, %d NotReady\n\n", len(nodes), ready, notReady))
+		fmt.Fprintf(&sb, "NODES: %d total, %d Ready, %d NotReady\n\n", len(nodes), ready, notReady)
 	}
 
 	pods, err := s.clients.ListPods(ctx, ns, "")
@@ -238,22 +238,22 @@ func (s *Server) clusterSummary(ctx context.Context, ns string) ToolCallResult {
 		}
 		sb.WriteString("POD PHASES:\n")
 		for phase, count := range phases {
-			sb.WriteString(fmt.Sprintf("  %-12s %d\n", phase, count))
+			fmt.Fprintf(&sb, "  %-12s %d\n", phase, count)
 		}
 		sb.WriteString("\n")
 	}
 
 	events, err := s.clients.ListEvents(ctx, ns, "type=Warning")
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("WARNING EVENTS (%d):\n", len(events)))
+		fmt.Fprintf(&sb, "WARNING EVENTS (%d):\n", len(events))
 		shown := 0
 		for _, e := range events {
 			if shown >= 10 {
-				sb.WriteString(fmt.Sprintf("  ... and %d more\n", len(events)-shown))
+				fmt.Fprintf(&sb, "  ... and %d more\n", len(events)-shown)
 				break
 			}
-			sb.WriteString(fmt.Sprintf("  [%s] %s/%s: %s\n",
-				e.Reason, e.InvolvedObject.Namespace, e.InvolvedObject.Name, e.Message))
+			fmt.Fprintf(&sb, "  [%s] %s/%s: %s\n",
+				e.Reason, e.InvolvedObject.Namespace, e.InvolvedObject.Name, e.Message)
 			shown++
 		}
 		sb.WriteString("\n")
@@ -268,8 +268,8 @@ func (s *Server) clusterSummary(ctx context.Context, ns string) ToolCallResult {
 			if saturated {
 				flag = " ⚠ AT MAX"
 			}
-			sb.WriteString(fmt.Sprintf("  %s/%s current=%d max=%d%s\n",
-				h.Namespace, h.Name, h.Status.CurrentReplicas, h.Spec.MaxReplicas, flag))
+			fmt.Fprintf(&sb, "  %s/%s current=%d max=%d%s\n",
+				h.Namespace, h.Name, h.Status.CurrentReplicas, h.Spec.MaxReplicas, flag)
 		}
 	}
 
@@ -298,13 +298,13 @@ func renderPods(pods []corev1.Pod) string {
 
 func renderPodDetail(p *corev1.Pod) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("Pod: %s/%s\n", p.Namespace, p.Name))
-	sb.WriteString(fmt.Sprintf("Phase:  %s\n", p.Status.Phase))
-	sb.WriteString(fmt.Sprintf("Node:   %s\n", p.Spec.NodeName))
-	sb.WriteString(fmt.Sprintf("IP:     %s\n", p.Status.PodIP))
+	fmt.Fprintf(&sb, "Pod: %s/%s\n", p.Namespace, p.Name)
+	fmt.Fprintf(&sb, "Phase:  %s\n", p.Status.Phase)
+	fmt.Fprintf(&sb, "Node:   %s\n", p.Spec.NodeName)
+	fmt.Fprintf(&sb, "IP:     %s\n", p.Status.PodIP)
 	sb.WriteString("\nConditions:\n")
 	for _, c := range p.Status.Conditions {
-		sb.WriteString(fmt.Sprintf("  %-24s %s\n", c.Type, c.Status))
+		fmt.Fprintf(&sb, "  %-24s %s\n", c.Type, c.Status)
 	}
 	sb.WriteString("\nContainers:\n")
 	for _, cs := range p.Status.ContainerStatuses {
@@ -316,13 +316,13 @@ func renderPodDetail(p *corev1.Pod) string {
 		} else if cs.State.Terminated != nil {
 			state = fmt.Sprintf("Terminated(%s)", cs.State.Terminated.Reason)
 		}
-		sb.WriteString(fmt.Sprintf("  %-30s ready=%-5v restarts=%-4d state=%s\n",
-			cs.Name, cs.Ready, cs.RestartCount, state))
+		fmt.Fprintf(&sb, "  %-30s ready=%-5v restarts=%-4d state=%s\n",
+			cs.Name, cs.Ready, cs.RestartCount, state)
 		// The last termination explains crash loops (e.g. OOMKilled, exit 137)
 		// while the current state only says Waiting(CrashLoopBackOff).
 		if t := cs.LastTerminationState.Terminated; t != nil {
-			sb.WriteString(fmt.Sprintf("  %-30s lastState=Terminated(%s) exitCode=%d\n",
-				"", t.Reason, t.ExitCode))
+			fmt.Fprintf(&sb, "  %-30s lastState=Terminated(%s) exitCode=%d\n",
+				"", t.Reason, t.ExitCode)
 		}
 	}
 	return sb.String()

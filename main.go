@@ -10,7 +10,8 @@ import (
 	"github.com/warbletech/heron-ops/internal/mcp"
 )
 
-const version = "0.1.0"
+// version is overridden at release time by goreleaser via -ldflags "-X main.version=...".
+var version = "0.1.0"
 
 func main() {
 	var (
