@@ -45,6 +45,10 @@ func (s *Server) ServeStdio() error {
 			continue
 		}
 		resp := s.handle(context.Background(), line)
+		if isNotificationAck(resp) {
+			// JSON-RPC 2.0: notifications must not be answered.
+			continue
+		}
 		s.mu.Lock()
 		if err := enc.Encode(resp); err != nil {
 			log.Printf("[mcp] encode error: %v", err)
@@ -71,6 +75,11 @@ func (s *Server) ServeHTTP(addr string) error {
 			return
 		}
 		resp := s.handle(r.Context(), raw)
+		if isNotificationAck(resp) {
+			// JSON-RPC 2.0: notifications get no response body.
+			w.WriteHeader(http.StatusAccepted)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(resp)
 	})
@@ -78,6 +87,12 @@ func (s *Server) ServeHTTP(addr string) error {
 		fmt.Fprint(w, `{"status":"ok","server":"heron-ops"}`)
 	})
 	return http.ListenAndServe(addr, mux)
+}
+
+// isNotificationAck reports whether handle produced the empty Response it
+// uses for notifications, which must not be written to the client.
+func isNotificationAck(r Response) bool {
+	return r.JSONRPC == ""
 }
 
 // ── Core dispatcher ───────────────────────────────────────────────────────────
