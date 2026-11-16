@@ -25,7 +25,7 @@ func newTestServer(mode config.Mode, objs ...runtime.Object) *Server {
 
 func rpc(t *testing.T, s *Server, req string) Response {
 	t.Helper()
-	return s.handle(context.Background(), []byte(req))
+	return s.handle(context.Background(), []byte(req), TransportStdio)
 }
 
 func toolNames(t *testing.T, resp Response) map[string]bool {

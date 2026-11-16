@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
+
+	"github.com/warbletech/heron-ops/internal/metrics"
 )
 
 // CallTool is the public entrypoint for embedding SteadyHelm in other MCP facades.
@@ -22,11 +25,45 @@ func (s *Server) ToolNames() []ToolDefinition {
 	return toolDefs(string(s.cfg.Mode))
 }
 
-// dispatch routes a tools/call request to the correct handler.
+// writeTools are refused unless the server runs in readwrite mode.
+var writeTools = map[string]bool{"scale_deployment": true, "delete_pod": true}
+
+// writeDenied reports whether the readonly-mode guard refuses tool name.
+func (s *Server) writeDenied(name string) bool {
+	return writeTools[name] && s.cfg.Mode != "readwrite"
+}
+
+// knownTools is every tool name, used to keep the "tool" metric label bounded.
+var knownTools = func() map[string]bool {
+	m := map[string]bool{}
+	for _, t := range toolDefs("readwrite") {
+		m[t.Name] = true
+	}
+	return m
+}()
+
+// dispatch runs a tool call and records tool metrics.
 func (s *Server) dispatch(ctx context.Context, params ToolCallParams) ToolCallResult {
+	start := time.Now()
+	res := s.runTool(ctx, params)
+	tool, result := "unknown", metrics.ResultSuccess
+	if knownTools[params.Name] {
+		tool = params.Name
+	}
+	switch {
+	case s.writeDenied(params.Name):
+		result = metrics.ResultDenied
+	case res.IsError:
+		result = metrics.ResultError
+	}
+	s.metrics.ObserveTool(tool, result, time.Since(start))
+	return res
+}
+
+// runTool routes a tools/call request to the correct handler.
+func (s *Server) runTool(ctx context.Context, params ToolCallParams) ToolCallResult {
 	// Guard write tools in readonly mode.
-	writeTools := map[string]bool{"scale_deployment": true, "delete_pod": true}
-	if writeTools[params.Name] && s.cfg.Mode != "readwrite" {
+	if s.writeDenied(params.Name) {
 		return errorResult(fmt.Sprintf("tool %q requires readwrite mode; restart with --mode=readwrite", params.Name))
 	}
 
