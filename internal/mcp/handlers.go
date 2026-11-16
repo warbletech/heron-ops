@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
+
+	"github.com/warbletech/heron-ops/internal/metrics"
 )
 
 // CallTool is the public entrypoint for embedding SteadyHelm in other MCP facades.
@@ -22,11 +25,45 @@ func (s *Server) ToolNames() []ToolDefinition {
 	return toolDefs(string(s.cfg.Mode))
 }
 
-// dispatch routes a tools/call request to the correct handler.
+// writeTools are refused unless the server runs in readwrite mode.
+var writeTools = map[string]bool{"scale_deployment": true, "delete_pod": true}
+
+// writeDenied reports whether the readonly-mode guard refuses tool name.
+func (s *Server) writeDenied(name string) bool {
+	return writeTools[name] && s.cfg.Mode != "readwrite"
+}
+
+// knownTools is every tool name, used to keep the "tool" metric label bounded.
+var knownTools = func() map[string]bool {
+	m := map[string]bool{}
+	for _, t := range toolDefs("readwrite") {
+		m[t.Name] = true
+	}
+	return m
+}()
+
+// dispatch runs a tool call and records tool metrics.
 func (s *Server) dispatch(ctx context.Context, params ToolCallParams) ToolCallResult {
+	start := time.Now()
+	res := s.runTool(ctx, params)
+	tool, result := "unknown", metrics.ResultSuccess
+	if knownTools[params.Name] {
+		tool = params.Name
+	}
+	switch {
+	case s.writeDenied(params.Name):
+		result = metrics.ResultDenied
+	case res.IsError:
+		result = metrics.ResultError
+	}
+	s.metrics.ObserveTool(tool, result, time.Since(start))
+	return res
+}
+
+// runTool routes a tools/call request to the correct handler.
+func (s *Server) runTool(ctx context.Context, params ToolCallParams) ToolCallResult {
 	// Guard write tools in readonly mode.
-	writeTools := map[string]bool{"scale_deployment": true, "delete_pod": true}
-	if writeTools[params.Name] && s.cfg.Mode != "readwrite" {
+	if s.writeDenied(params.Name) {
 		return errorResult(fmt.Sprintf("tool %q requires readwrite mode; restart with --mode=readwrite", params.Name))
 	}
 
@@ -227,7 +264,7 @@ func (s *Server) clusterSummary(ctx context.Context, ns string) ToolCallResult {
 				}
 			}
 		}
-		sb.WriteString(fmt.Sprintf("NODES: %d total, %d Ready, %d NotReady\n\n", len(nodes), ready, notReady))
+		fmt.Fprintf(&sb, "NODES: %d total, %d Ready, %d NotReady\n\n", len(nodes), ready, notReady)
 	}
 
 	pods, err := s.clients.ListPods(ctx, ns, "")
@@ -238,22 +275,22 @@ func (s *Server) clusterSummary(ctx context.Context, ns string) ToolCallResult {
 		}
 		sb.WriteString("POD PHASES:\n")
 		for phase, count := range phases {
-			sb.WriteString(fmt.Sprintf("  %-12s %d\n", phase, count))
+			fmt.Fprintf(&sb, "  %-12s %d\n", phase, count)
 		}
 		sb.WriteString("\n")
 	}
 
 	events, err := s.clients.ListEvents(ctx, ns, "type=Warning")
 	if err == nil {
-		sb.WriteString(fmt.Sprintf("WARNING EVENTS (%d):\n", len(events)))
+		fmt.Fprintf(&sb, "WARNING EVENTS (%d):\n", len(events))
 		shown := 0
 		for _, e := range events {
 			if shown >= 10 {
-				sb.WriteString(fmt.Sprintf("  ... and %d more\n", len(events)-shown))
+				fmt.Fprintf(&sb, "  ... and %d more\n", len(events)-shown)
 				break
 			}
-			sb.WriteString(fmt.Sprintf("  [%s] %s/%s: %s\n",
-				e.Reason, e.InvolvedObject.Namespace, e.InvolvedObject.Name, e.Message))
+			fmt.Fprintf(&sb, "  [%s] %s/%s: %s\n",
+				e.Reason, e.InvolvedObject.Namespace, e.InvolvedObject.Name, e.Message)
 			shown++
 		}
 		sb.WriteString("\n")
@@ -268,8 +305,8 @@ func (s *Server) clusterSummary(ctx context.Context, ns string) ToolCallResult {
 			if saturated {
 				flag = " ⚠ AT MAX"
 			}
-			sb.WriteString(fmt.Sprintf("  %s/%s current=%d max=%d%s\n",
-				h.Namespace, h.Name, h.Status.CurrentReplicas, h.Spec.MaxReplicas, flag))
+			fmt.Fprintf(&sb, "  %s/%s current=%d max=%d%s\n",
+				h.Namespace, h.Name, h.Status.CurrentReplicas, h.Spec.MaxReplicas, flag)
 		}
 	}
 
@@ -298,13 +335,13 @@ func renderPods(pods []corev1.Pod) string {
 
 func renderPodDetail(p *corev1.Pod) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("Pod: %s/%s\n", p.Namespace, p.Name))
-	sb.WriteString(fmt.Sprintf("Phase:  %s\n", p.Status.Phase))
-	sb.WriteString(fmt.Sprintf("Node:   %s\n", p.Spec.NodeName))
-	sb.WriteString(fmt.Sprintf("IP:     %s\n", p.Status.PodIP))
+	fmt.Fprintf(&sb, "Pod: %s/%s\n", p.Namespace, p.Name)
+	fmt.Fprintf(&sb, "Phase:  %s\n", p.Status.Phase)
+	fmt.Fprintf(&sb, "Node:   %s\n", p.Spec.NodeName)
+	fmt.Fprintf(&sb, "IP:     %s\n", p.Status.PodIP)
 	sb.WriteString("\nConditions:\n")
 	for _, c := range p.Status.Conditions {
-		sb.WriteString(fmt.Sprintf("  %-24s %s\n", c.Type, c.Status))
+		fmt.Fprintf(&sb, "  %-24s %s\n", c.Type, c.Status)
 	}
 	sb.WriteString("\nContainers:\n")
 	for _, cs := range p.Status.ContainerStatuses {
@@ -316,13 +353,13 @@ func renderPodDetail(p *corev1.Pod) string {
 		} else if cs.State.Terminated != nil {
 			state = fmt.Sprintf("Terminated(%s)", cs.State.Terminated.Reason)
 		}
-		sb.WriteString(fmt.Sprintf("  %-30s ready=%-5v restarts=%-4d state=%s\n",
-			cs.Name, cs.Ready, cs.RestartCount, state))
+		fmt.Fprintf(&sb, "  %-30s ready=%-5v restarts=%-4d state=%s\n",
+			cs.Name, cs.Ready, cs.RestartCount, state)
 		// The last termination explains crash loops (e.g. OOMKilled, exit 137)
 		// while the current state only says Waiting(CrashLoopBackOff).
 		if t := cs.LastTerminationState.Terminated; t != nil {
-			sb.WriteString(fmt.Sprintf("  %-30s lastState=Terminated(%s) exitCode=%d\n",
-				"", t.Reason, t.ExitCode))
+			fmt.Fprintf(&sb, "  %-30s lastState=Terminated(%s) exitCode=%d\n",
+				"", t.Reason, t.ExitCode)
 		}
 	}
 	return sb.String()

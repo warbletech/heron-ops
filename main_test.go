@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -38,10 +39,16 @@ func TestMainHTTPTransport(t *testing.T) {
 	}
 	addr := l.Addr().String()
 	l.Close()
+	ml, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	metricsAddr := ml.Addr().String()
+	ml.Close()
 
 	oldArgs := os.Args
 	t.Cleanup(func() { os.Args = oldArgs })
-	os.Args = []string{"heron-ops", "-transport=http", "-addr=" + addr, "-kubeconfig=" + writeKubeconfig(t), "-mode=readwrite"}
+	os.Args = []string{"heron-ops", "-transport=http", "-addr=" + addr, "-kubeconfig=" + writeKubeconfig(t), "-mode=readwrite", "-metrics-addr=" + metricsAddr}
 	go main() // blocks in ServeHTTP for the rest of the test binary's life
 
 	deadline := time.Now().Add(10 * time.Second)
@@ -70,6 +77,40 @@ func TestMainHTTPTransport(t *testing.T) {
 	b, _ := io.ReadAll(resp.Body)
 	if !strings.Contains(string(b), `"scale_deployment"`) {
 		t.Fatalf("-mode=readwrite was not applied; tools/list = %s", b)
+	}
+
+	// /metrics is served on the HTTP transport and on the separate -metrics-addr listener.
+	for _, base := range []string{"http://" + addr, "http://" + metricsAddr} {
+		body := getEventually(t, base+"/metrics")
+		for _, want := range []string{
+			`heron_ops_build_info{mode="readwrite",version="` + version + `"} 1`,
+			`heron_ops_rpc_requests_total{method="tools/list",result="success",transport="http"} 1`,
+			"process_cpu_seconds_total",
+		} {
+			if !strings.Contains(body, want) {
+				t.Errorf("%s/metrics missing %q", base, want)
+			}
+		}
+	}
+}
+
+func getEventually(t *testing.T, url string) string {
+	t.Helper()
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		resp, err := http.Get(url)
+		if err == nil {
+			b, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				return string(b)
+			}
+			err = errors.New(resp.Status)
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("GET %s: %v", url, err)
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
 }
 
@@ -100,7 +141,8 @@ func TestMainExitPaths(t *testing.T) {
 			cmd.Env = append(cmd.Env, tc.env...)
 			out, err := cmd.CombinedOutput()
 			code := 0
-			if ee, ok := err.(*exec.ExitError); ok {
+			var ee *exec.ExitError
+			if errors.As(err, &ee) {
 				code = ee.ExitCode()
 			} else if err != nil {
 				t.Fatal(err)

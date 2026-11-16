@@ -19,6 +19,7 @@ Pairs with **[ShrikeOps](https://github.com/warbletech/shrikeops)** (scan) and *
 - **RBAC gates** — kubeconfig or scoped ServiceAccount
 - **stdio + HTTP transports** — Claude Desktop / Cursor via stdio, or HTTP sidecar
 - **Metrics-server aware** — live CPU/memory (degrades if metrics-server absent)
+- **Prometheus metrics** — tool calls, JSON-RPC and Kubernetes API latency on `/metrics`, plus a Grafana dashboard
 
 ## Install
 
@@ -44,6 +45,13 @@ Legacy binary name `steadyhelm` remains a symlink during transition.
   }
 }
 ```
+
+## Metrics
+
+With `--transport=http`, Prometheus metrics are served on `GET /metrics` next to `/mcp`.
+In stdio mode they are off unless you set `--metrics-addr=127.0.0.1:9090` (or `HERON_OPS_METRICS_ADDR`).
+See [docs/metrics.md](docs/metrics.md) for every metric, its labels and example PromQL, and
+[deploy/grafana](deploy/grafana/) for the Grafana dashboard.
 
 ## Try the flock
 
