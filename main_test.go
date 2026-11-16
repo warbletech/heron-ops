@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -100,7 +101,8 @@ func TestMainExitPaths(t *testing.T) {
 			cmd.Env = append(cmd.Env, tc.env...)
 			out, err := cmd.CombinedOutput()
 			code := 0
-			if ee, ok := err.(*exec.ExitError); ok {
+			var ee *exec.ExitError
+			if errors.As(err, &ee) {
 				code = ee.ExitCode()
 			} else if err != nil {
 				t.Fatal(err)
