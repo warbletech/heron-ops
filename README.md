@@ -55,9 +55,11 @@ https://mcp.warbleoss.org
 ```bash
 go test -race ./...   # unit tests use client-go's fake clientset; no cluster needed
 go vet ./...
+go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out | tail -1
 ```
 
 CI (`.github/workflows/ci.yml`) runs gofmt, `go mod tidy`, build, vet and tests on every push and PR.
+It fails if total statement coverage drops below 80% and uploads `coverage.out` as the `coverage` artifact.
 Pushing a `v*` tag runs `.github/workflows/release.yml`, which tests, builds binaries for Linux, macOS and
 Windows (amd64/arm64), and publishes a GitHub release with `checksums.txt`.
 
