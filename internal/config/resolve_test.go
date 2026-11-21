@@ -19,6 +19,12 @@ func TestNewResolutionOrder(t *testing.T) {
 		}
 		return home
 	}
+	// os.UserHomeDir reads HOME on Unix and USERPROFILE on Windows.
+	setUserHome := func(t *testing.T, home string) {
+		t.Helper()
+		t.Setenv("HOME", home)
+		t.Setenv("USERPROFILE", home)
+	}
 	for _, tc := range []struct {
 		name     string
 		flag     func(t *testing.T) string
@@ -61,7 +67,7 @@ func TestNewResolutionOrder(t *testing.T) {
 				env = tc.env(t)
 			}
 			t.Setenv("KUBECONFIG", env)
-			t.Setenv("HOME", tc.home(t))
+			setUserHome(t, tc.home(t))
 			cfg := New(flag, "", "")
 			if got := cfg.RESTConfig != nil; got != tc.wantREST {
 				t.Fatalf("RESTConfig != nil is %v, want %v", got, tc.wantREST)

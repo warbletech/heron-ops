@@ -45,7 +45,10 @@ func TestNewDefaultsToReadOnly(t *testing.T) {
 
 func TestNewWithoutKubeconfigFails(t *testing.T) {
 	t.Setenv("KUBECONFIG", filepath.Join(t.TempDir(), "missing"))
-	t.Setenv("HOME", t.TempDir())
+	// os.UserHomeDir reads HOME on Unix and USERPROFILE on Windows.
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 	if _, err := New(Options{}); err == nil {
 		t.Fatal("New without any Kubernetes config should fail")
 	}
