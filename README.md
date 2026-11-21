@@ -21,6 +21,20 @@ Pairs with **[ShrikeOps](https://github.com/warbletech/shrikeops)** (scan) and *
 - **Metrics-server aware** — live CPU/memory (degrades if metrics-server absent)
 - **Prometheus metrics** — tool calls, JSON-RPC and Kubernetes API latency on `/metrics`, plus a Grafana dashboard
 
+## Safety for agents
+
+Prefer `--mode=readonly` when an agent or LLM client can call this server.
+
+Mode is set with the `--mode` flag (`readonly` or `readwrite`). The default is `readonly`. There is no environment variable for mode; any value other than `readwrite` is treated as `readonly`.
+
+**`readonly`** exposes the read tools: `list_namespaces`, `list_pods`, `get_pod`, `get_pod_logs`, `list_nodes`, `list_events`, `list_deployments`, `list_hpas`, `list_pod_metrics`, `list_node_metrics`, `list_services`, `get_configmap`, and `cluster_summary`. The write tools `scale_deployment` and `delete_pod` are omitted from the tool list, and a call to either is refused with an error asking you to restart with `--mode=readwrite`.
+
+**`readwrite`** adds those two write tools: `scale_deployment` changes a Deployment's replica count, and `delete_pod` deletes a pod (which triggers a restart). Enable this only in a tightly scoped setup — namespaced RBAC, short-lived credentials, and human approval.
+
+Mode is an MCP tool gate, not a substitute for Kubernetes RBAC. The server uses `--kubeconfig`, or the `KUBECONFIG` environment variable, or `~/.kube/config`, or the in-cluster ServiceAccount. Give that identity least privilege. A read-only Role or ClusterRole limited to `get`, `list`, and `watch` is enough for the read tools.
+
+See [SECURITY.md](SECURITY.md) for how to report vulnerabilities.
+
 ## Install
 
 ```bash
