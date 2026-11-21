@@ -8,18 +8,21 @@ import (
 
 	"github.com/warbletech/heron-ops/internal/config"
 	"github.com/warbletech/heron-ops/internal/mcp"
+	"github.com/warbletech/heron-ops/internal/metrics"
 )
 
-const version = "0.1.0"
+// version is overridden at release time by goreleaser via -ldflags "-X main.version=...".
+var version = "0.1.0"
 
 func main() {
 	var (
-		mode       = flag.String("mode", "readonly", "Server mode: readonly | readwrite")
-		transport  = flag.String("transport", "stdio", "MCP transport: stdio | http")
-		addr       = flag.String("addr", ":8811", "HTTP listen address (only used when transport=http)")
-		kubeconfig = flag.String("kubeconfig", "", "Path to kubeconfig file (defaults to in-cluster config)")
-		namespace  = flag.String("namespace", "", "Restrict to a single namespace (empty = all namespaces)")
-		ver        = flag.Bool("version", false, "Print version and exit")
+		mode        = flag.String("mode", "readonly", "Server mode: readonly | readwrite")
+		transport   = flag.String("transport", "stdio", "MCP transport: stdio | http")
+		addr        = flag.String("addr", ":8811", "HTTP listen address (only used when transport=http)")
+		kubeconfig  = flag.String("kubeconfig", "", "Path to kubeconfig file (defaults to in-cluster config)")
+		namespace   = flag.String("namespace", "", "Restrict to a single namespace (empty = all namespaces)")
+		metricsAddr = flag.String("metrics-addr", os.Getenv("HERON_OPS_METRICS_ADDR"), "Optional separate listen address for GET /metrics, e.g. 127.0.0.1:9090 (env HERON_OPS_METRICS_ADDR; empty = off). With transport=http, /metrics is also served on --addr")
+		ver         = flag.Bool("version", false, "Print version and exit")
 	)
 	flag.Parse()
 
@@ -32,9 +35,25 @@ func main() {
 
 	cfg := config.New(*kubeconfig, *namespace, *mode)
 
-	srv, err := mcp.NewServer(cfg)
+	m, err := metrics.New(metrics.NewRegistry())
+	if err != nil {
+		log.Fatalf("[heron-ops] failed to initialise metrics: %v", err)
+	}
+	m.SetBuildInfo(version, string(cfg.Mode))
+
+	srv, err := mcp.NewServer(cfg, mcp.WithMetrics(m))
 	if err != nil {
 		log.Fatalf("[heron-ops] failed to initialise server: %v", err)
+	}
+
+	if *metricsAddr != "" {
+		// Logs go to stderr; stdout stays reserved for the stdio transport.
+		log.Printf("[heron-ops] serving metrics on %s/metrics", *metricsAddr)
+		go func() {
+			if err := metrics.ListenAndServe(*metricsAddr, m); err != nil {
+				log.Printf("[heron-ops] metrics listener error: %v", err)
+			}
+		}()
 	}
 
 	switch *transport {

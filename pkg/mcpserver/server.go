@@ -6,8 +6,11 @@ package mcpserver
 import (
 	"context"
 
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/warbletech/heron-ops/internal/config"
 	"github.com/warbletech/heron-ops/internal/mcp"
+	"github.com/warbletech/heron-ops/internal/metrics"
 )
 
 // Mode mirrors config.Mode for external callers.
@@ -29,6 +32,9 @@ type Options struct {
 	Kubeconfig string
 	Namespace  string
 	Mode       string // "readonly" | "readwrite"
+	// MetricsRegisterer, when set, receives the heron_ops_* tool and
+	// Kubernetes API metrics (see docs/metrics.md). Nil disables metrics.
+	MetricsRegisterer prometheus.Registerer
 }
 
 // New builds a cluster MCP backend. Fails if Kubernetes config cannot be resolved.
@@ -38,7 +44,15 @@ func New(opts Options) (*Server, error) {
 		mode = string(config.ModeReadOnly)
 	}
 	cfg := config.New(opts.Kubeconfig, opts.Namespace, mode)
-	inner, err := mcp.NewServer(cfg)
+	var srvOpts []mcp.Option
+	if opts.MetricsRegisterer != nil {
+		m, err := metrics.New(opts.MetricsRegisterer)
+		if err != nil {
+			return nil, err
+		}
+		srvOpts = append(srvOpts, mcp.WithMetrics(m))
+	}
+	inner, err := mcp.NewServer(cfg, srvOpts...)
 	if err != nil {
 		return nil, err
 	}

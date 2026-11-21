@@ -1,0 +1,62 @@
+name: release
+
+# Push a tag like v0.1.0 to test, build with GoReleaser and publish a GitHub
+# release with checksums and grouped release notes (see .goreleaser.yaml).
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: test before release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GOWORK: "off"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: stable
+          cache-dependency-path: go.sum
+
+      - name: Test
+        env:
+          KUBECONFIG: /dev/null
+        run: go test -race -count=1 ./...
+
+  goreleaser:
+    name: goreleaser
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write # create the release and upload assets
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # full history for the changelog
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: stable
+          cache-dependency-path: go.sum
+
+      - uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

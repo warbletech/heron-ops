@@ -1,0 +1,87 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# Release config for heron-ops. CI runs this on v* tags (.github/workflows/release.yml).
+# Local dry run: goreleaser release --snapshot --clean
+version: 2
+
+project_name: heron-ops
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: heron-ops
+    main: .
+    binary: heron-ops
+    env:
+      - CGO_ENABLED=0
+      - GOWORK=off
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: heron-ops
+    ids: [heron-ops]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  use: github
+  sort: asc
+  abbrev: 7
+  filters:
+    exclude:
+      - "^Merge (pull request|branch)"
+  groups:
+    - title: Breaking changes
+      regexp: '^.*?(\([[:word:]-]+\))??!:.+$'
+      order: 0
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]-]+\))??:.+$'
+      order: 10
+    - title: Bug fixes
+      regexp: '^.*?fix(\([[:word:]-]+\))??:.+$'
+      order: 20
+    - title: Performance
+      regexp: '^.*?perf(\([[:word:]-]+\))??:.+$'
+      order: 30
+    - title: Refactoring
+      regexp: '^.*?refactor(\([[:word:]-]+\))??:.+$'
+      order: 40
+    - title: Documentation
+      regexp: '^.*?docs(\([[:word:]-]+\))??:.+$'
+      order: 50
+    - title: Tests
+      regexp: '^.*?test(\([[:word:]-]+\))??:.+$'
+      order: 60
+    - title: Build and CI
+      regexp: '^.*?(build|ci)(\([[:word:]-]+\))??:.+$'
+      order: 70
+    - title: Other changes
+      order: 999
+
+release:
+  github:
+    owner: warbletech
+    name: heron-ops
+  draft: false
+  prerelease: auto
+  mode: replace
